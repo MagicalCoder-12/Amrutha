@@ -78,7 +78,15 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('startButton').addEventListener('click', startGame);
     document.getElementById('autoCompleteButton').addEventListener('click', autoCompleteRound1);
     document.getElementById('submitWord').addEventListener('click', submitWord);
-    document.getElementById('bonusContinue').addEventListener('click', showFinalStage);
+    document.getElementById('bonusContinue').addEventListener('click', () => {
+        // Stop the embarrassing video if it's playing
+        if (videos.embarrassing) {
+            videos.embarrassing.pause();
+            videos.embarrassing.currentTime = 0;
+        }
+        
+        showFinalStage();
+    });
     document.getElementById('hidePreview').addEventListener('click', hideRound1Preview);
     
     // Word input enter key
@@ -228,7 +236,7 @@ function resetGameState() {
     gameState.round1.solved = false;
     gameState.round1.moves = 0;
     gameState.round1.selectedTile = null;
-    gameState.round1.timeLeft = 180;
+    gameState.round1.timeLeft = 60;
     if (gameState.round1.timer) {
         clearInterval(gameState.round1.timer);
         gameState.round1.timer = null;
@@ -1265,7 +1273,7 @@ function handleColorClick(colorIndex) {
     
     // Check if the clicked note matches the sequence
     if (gameState.round3.userSequence[currentIndex] !== gameState.round3.sequence[currentIndex]) {
-        // Wrong note - play "you_cant" audio and show embarrassing video
+        // Wrong note - play "you_cant" audio and show video
         gameState.round3.wrongAttempts = (gameState.round3.wrongAttempts || 0) + 1;
         
         if (audios.cant) {
@@ -1275,16 +1283,7 @@ function handleColorClick(colorIndex) {
         
         // Show the embarrassing video after a short delay
         setTimeout(() => {
-            showScreen('bonus');
-            
-            // Play the embarrassing video after screen transition
-            if (videos.embarrassing) {
-                setTimeout(() => {
-                    // Preload and play the video
-                    videos.embarrassing.load();
-                    videos.embarrassing.play().catch(e => console.log('Video play failed:', e));
-                }, 500);
-            }
+            showFinalStage();
         }, 2000);
         
         return;
@@ -1298,15 +1297,6 @@ function handleColorClick(colorIndex) {
         
         setTimeout(() => {
             showScreen('bonus');
-            
-            // Play the embarrassing video after screen transition
-            if (videos.embarrassing) {
-                setTimeout(() => {
-                    // Preload and play the video
-                    videos.embarrassing.load();
-                    videos.embarrassing.play().catch(e => console.log('Video play failed:', e));
-                }, 500);
-            }
         }, 2000);
     }
 }
