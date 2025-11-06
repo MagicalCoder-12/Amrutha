@@ -1045,11 +1045,12 @@ function timeUpRound2() {
 function initializeRound3() {
     gameState.currentRound = 3;
     
-    // Generate "Happy Birthday" sequence (simplified)
-    // Using 6 notes for a simpler sequence that matches the display
-    gameState.round3.sequence = [0, 1, 2, 2, 1, 3]; // Simplified 6-note sequence
+    // Set the specific sequence: blue, red, green, green, yellow, blue
+    // Corresponds to colors: 0, 1, 2, 2, 3, 0
+    gameState.round3.sequence = [0, 1, 2, 2, 3, 0];
     gameState.round3.userSequence = [];
     gameState.round3.showingSequence = false;
+    gameState.round3.wrongAttempts = 0; // Track wrong attempts
     
     // Render sequence display
     renderSequenceDisplay();
@@ -1074,7 +1075,10 @@ function renderSequenceDisplay() {
 
 function showSequence() {
     gameState.round3.showingSequence = true;
-    document.getElementById('round3Instructions').textContent = 'Listen to the "Happy Birthday" tune...';
+    document.getElementById('round3Instructions').textContent = 'Listen to the sequence...';
+    
+    // Reset wrong attempts when showing sequence
+    gameState.round3.wrongAttempts = 0;
     
     let i = 0;
     const showNext = () => {
@@ -1100,7 +1104,7 @@ function showSequence() {
             // Finished showing sequence
             setTimeout(() => {
                 gameState.round3.showingSequence = false;
-                document.getElementById('round3Instructions').textContent = 'Repeat the "Happy Birthday" tune!';
+                document.getElementById('round3Instructions').textContent = 'Repeat the sequence!';
             }, 500);
         }
     };
@@ -1142,11 +1146,19 @@ function handleColorClick(colorIndex) {
     
     // Check if the clicked note matches the sequence
     if (gameState.round3.userSequence[currentIndex] !== gameState.round3.sequence[currentIndex]) {
-        // Wrong note
-        gameState.round3.userSequence = [];
+        // Wrong note - play "you_cant" audio and show video
+        gameState.round3.wrongAttempts = (gameState.round3.wrongAttempts || 0) + 1;
+        
+        if (audios.cant) {
+            audios.cant.volume = 1.0;
+            audios.cant.play().catch(e => console.log('Audio play failed:', e));
+        }
+        
+        // Show the embarrassing video after a short delay
         setTimeout(() => {
-            showSequence();
-        }, 1000);
+            showFinalStage();
+        }, 2000);
+        
         return;
     }
     
