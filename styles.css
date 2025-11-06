@@ -210,6 +210,8 @@ button:active {
     /* Improve touch targets for mobile */
     min-height: 80px;
     min-width: 80px;
+    /* Drag and drop improvements */
+    user-select: none;
 }
 
 .puzzle-tile:hover {
@@ -434,6 +436,7 @@ button:active {
     gap: 25px;
     max-width: 350px;
     margin: 35px auto;
+    width: 100%;
 }
 
 .color-btn {
@@ -468,6 +471,7 @@ button:active {
     justify-content: center;
     gap: 15px;
     margin: 25px 0;
+    flex-wrap: wrap;
 }
 
 .sequence-dot {
@@ -586,6 +590,35 @@ video {
         padding: 20px;
         margin: 10px;
         border-width: 3px;
+    }
+    
+    .puzzle-tile {
+        min-height: 70px;
+        min-width: 70px;
+        font-size: 2rem;
+        user-select: none;
+    }
+    
+    .color-btn {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 0 rgba(0, 0, 0, 0.2);
+        font-size: 1.8rem;
+    }
+    
+    .color-buttons {
+        gap: 15px;
+        max-width: 300px;
+        margin: 25px auto;
+    }
+    
+    .sequence-dot {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .sequence-display {
+        gap: 10px;
+        margin: 15px 0;
     }
     
     .crossword-grid {
@@ -821,6 +854,35 @@ video {
         margin: 5px;
     }
     
+    .puzzle-tile {
+        min-height: 60px;
+        min-width: 60px;
+        font-size: 1.8rem;
+        user-select: none;
+    }
+    
+    .color-btn {
+        transform: translateY(-3px);
+        box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
+        font-size: 1.5rem;
+    }
+    
+    .color-buttons {
+        gap: 12px;
+        max-width: 250px;
+        margin: 20px auto;
+    }
+    
+    .sequence-dot {
+        width: 15px;
+        height: 15px;
+    }
+    
+    .sequence-display {
+        gap: 8px;
+        margin: 10px 0;
+    }
+    
     .crossword-grid {
         display: none; /* Hidden initially, shown when all words are solved */
         grid-template-columns: repeat(10, 1fr);
@@ -965,21 +1027,27 @@ video {
         position: relative;
     }
     
+    .puzzle-tile {
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+    }
+    
     .color-btn:hover {
-        transform: translateY(-5px) scale(1.05);
+        transform: translateY(-3px) scale(1.05);
     }
     
     .color-btn:active {
-        transform: translateY(-3px);
+        transform: translateY(-2px);
     }
     
     button:hover {
-        transform: translateY(-5px);
+        transform: translateY(-3px);
         box-shadow: 0 5px 0 #d14848, 0 8px 10px rgba(0, 0, 0, 0.2);
     }
     
     button:active {
-        transform: translateY(-3px);
+        transform: translateY(-2px);
         box-shadow: 0 3px 0 #d14848, 0 5px 8px rgba(0, 0, 0, 0.2);
     }
 }

@@ -105,6 +105,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Final video event listeners
+    if (videos.final) {
+        videos.final.addEventListener('ended', () => {
+            // Video ended, but we want it to loop so this might not be needed
+            console.log('Final video ended');
+        });
+    }
+    
+    // Play again button event listener
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    if (playAgainBtn) {
+        playAgainBtn.addEventListener('click', () => {
+            // Reset game state and go back to welcome screen
+            resetGameState();
+            showScreen('welcome');
+        });
+    }
+    
     // Developer shortcut
     document.addEventListener('keydown', handleDeveloperShortcut);
 });
@@ -193,6 +211,58 @@ function startGame() {
     
     showScreen('round1');
     initializeRound1();
+}
+
+// Reset game state
+function resetGameState() {
+    // Reset all game state variables
+    gameState.currentRound = 1;
+    gameState.embarrassingVideoPlayed = false;
+    
+    // Reset round 1
+    gameState.round1.tiles = [];
+    for (let i = 0; i < 9; i++) {
+        gameState.round1.tiles.push(i === 8 ? null : i);
+    }
+    gameState.round1.emptyIndex = 8;
+    gameState.round1.solved = false;
+    gameState.round1.moves = 0;
+    gameState.round1.selectedTile = null;
+    gameState.round1.timeLeft = 180;
+    if (gameState.round1.timer) {
+        clearInterval(gameState.round1.timer);
+        gameState.round1.timer = null;
+    }
+    
+    // Reset round 2
+    gameState.round2.currentIndex = 0;
+    gameState.round2.userInput = Array(4).fill("");
+    gameState.round2.attempts = [3, 3, 3, 3];
+    gameState.round2.solved = [false, false, false, false];
+    gameState.round2.timeLeft = 120;
+    gameState.round2.selectedLetters = [];
+    if (gameState.round2.timer) {
+        clearInterval(gameState.round2.timer);
+        gameState.round2.timer = null;
+    }
+    
+    // Reset round 3
+    gameState.round3.sequence = [0, 1, 2, 2, 3, 0];
+    gameState.round3.userSequence = [];
+    gameState.round3.showingSequence = false;
+    gameState.round3.wrongAttempts = 0;
+    
+    // Reset UI elements
+    document.getElementById('puzzleSolved').classList.add('hidden');
+    document.getElementById('autoCompleteButton').classList.add('hidden');
+    document.getElementById('wordResult').textContent = '';
+    
+    // Reset input fields
+    document.getElementById('playerName').value = gameState.playerName;
+    document.getElementById('wordInput').value = '';
+    
+    // Hide preview if visible
+    hideRound1Preview();
 }
 
 // Show a specific screen
@@ -498,6 +568,16 @@ function renderPuzzle() {
         // Add click and drag functionality
         tileElement.addEventListener('click', () => handleRound1TileClick(index));
         
+        // Add drag and drop functionality
+        if (tile !== null) { // Only non-empty tiles can be dragged
+            tileElement.draggable = true;
+            tileElement.addEventListener('dragstart', (e) => handleDragStart(e, index));
+        }
+        
+        // All tiles can be drop targets
+        tileElement.addEventListener('dragover', handleDragOver);
+        tileElement.addEventListener('drop', (e) => handleDrop(e, index));
+        
         // Store reference for drag and drop
         gameState.round1.tileElements.push(tileElement);
         container.appendChild(tileElement);
@@ -557,6 +637,45 @@ function swapRound1Tiles(index1, index2) {
     // Check if puzzle is solved
     if (checkPuzzleSolved()) {
         solvePuzzle();
+    }
+}
+
+// Drag and drop handlers for round 1
+function handleDragStart(e, tileIndex) {
+    e.dataTransfer.setData('text/plain', tileIndex);
+    // Add visual feedback
+    e.target.style.opacity = '0.75';
+}
+
+function handleDragOver(e) {
+    e.preventDefault(); // Allow drop
+}
+
+function handleDrop(e, targetIndex) {
+    e.preventDefault();
+    
+    if (gameState.round1.solved) return;
+    
+    const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    
+    // Reset opacity
+    e.target.style.opacity = '1';
+    
+    // Check if target is the empty tile
+    if (gameState.round1.tiles[targetIndex] === null) {
+        // Check if source tile is adjacent to empty tile
+        const sourceRow = Math.floor(sourceIndex / 3);
+        const sourceCol = sourceIndex % 3;
+        const targetRow = Math.floor(targetIndex / 3);
+        const targetCol = targetIndex % 3;
+        
+        const isAdjacent = 
+            (sourceRow === targetRow && Math.abs(sourceCol - targetCol) === 1) ||
+            (sourceCol === targetCol && Math.abs(sourceRow - targetRow) === 1);
+        
+        if (isAdjacent) {
+            swapRound1Tiles(sourceIndex, targetIndex);
+        }
     }
 }
 
