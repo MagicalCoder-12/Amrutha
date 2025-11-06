@@ -73,11 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (audios.cant) {
         audios.cant.volume = 1.0;
     }
-    
-    // Initialize background music
-    if (audios.bgMusic) {
-        audios.bgMusic.volume = 0.3; // Set lower volume for background music
-    }
 
     // Event listeners
     document.getElementById('startButton').addEventListener('click', startGame);
@@ -1183,6 +1178,9 @@ function initializeRound3() {
     setTimeout(() => {
         showSequence();
     }, 1000);
+    
+    // Mute background music for round 3
+    stopBackgroundMusic();
 }
 
 function renderSequenceDisplay() {
