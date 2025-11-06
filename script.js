@@ -741,6 +741,8 @@ function placeWordInGrid(rowIndex, word) {
         if (row === rowIndex && col < word.length) {
             cell.textContent = word[col];
             cell.classList.add('filled');
+            // Remove hint class if it was a hint cell
+            cell.classList.remove('hint');
         }
     });
 }

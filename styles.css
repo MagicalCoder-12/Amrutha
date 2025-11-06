@@ -311,7 +311,7 @@ button:active {
 }
 
 .crossword-grid {
-    display: grid;
+    display: none; /* Hidden initially, shown when all words are solved */
     grid-template-columns: repeat(10, 1fr);
     gap: 2px;
     max-width: 100%;
@@ -586,6 +586,13 @@ video {
         border-width: 3px;
     }
     
+    .crossword-grid {
+        display: none; /* Hidden initially, shown when all words are solved */
+        grid-template-columns: repeat(10, 1fr);
+        gap: 1px;
+        padding: 5px;
+    }
+    
     .preview-btn {
         min-height: 40px;
         min-width: 90px;
@@ -810,6 +817,13 @@ video {
     .container {
         padding: 15px;
         margin: 5px;
+    }
+    
+    .crossword-grid {
+        display: none; /* Hidden initially, shown when all words are solved */
+        grid-template-columns: repeat(10, 1fr);
+        gap: 1px;
+        padding: 3px;
     }
     
     .preview-btn {
