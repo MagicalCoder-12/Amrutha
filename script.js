@@ -73,6 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (audios.cant) {
         audios.cant.volume = 1.0;
     }
+    
+    // Initialize background music
+    if (audios.bgMusic) {
+        audios.bgMusic.volume = 0.3; // Set lower volume for background music
+    }
 
     // Event listeners
     document.getElementById('startButton').addEventListener('click', startGame);
@@ -199,8 +204,6 @@ function handleDeveloperShortcut(event) {
             case 3:
                 // Skip round 3 - show bonus screen
                 showScreen('bonus');
-                // Mute background music for round 3
-                stopBackgroundMusic();
                 break;
         }
     }
