@@ -78,15 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('startButton').addEventListener('click', startGame);
     document.getElementById('autoCompleteButton').addEventListener('click', autoCompleteRound1);
     document.getElementById('submitWord').addEventListener('click', submitWord);
-    document.getElementById('bonusContinue').addEventListener('click', () => {
-        // Stop the embarrassing video if it's playing
-        if (videos.embarrassing) {
-            videos.embarrassing.pause();
-            videos.embarrassing.currentTime = 0;
-        }
-        
-        showFinalStage();
-    });
+    document.getElementById('bonusContinue').addEventListener('click', showFinalStage);
     document.getElementById('hidePreview').addEventListener('click', hideRound1Preview);
     
     // Word input enter key
@@ -207,6 +199,8 @@ function handleDeveloperShortcut(event) {
             case 3:
                 // Skip round 3 - show bonus screen
                 showScreen('bonus');
+                // Mute background music for round 3
+                stopBackgroundMusic();
                 break;
         }
     }
@@ -236,7 +230,7 @@ function resetGameState() {
     gameState.round1.solved = false;
     gameState.round1.moves = 0;
     gameState.round1.selectedTile = null;
-    gameState.round1.timeLeft = 60;
+    gameState.round1.timeLeft = 180;
     if (gameState.round1.timer) {
         clearInterval(gameState.round1.timer);
         gameState.round1.timer = null;
