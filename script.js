@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Developer shortcut handler
 function handleDeveloperShortcut(event) {
     // Check if just 'N' is pressed (without Ctrl)
-    if (event.key === 'n' || event.key === 'N') {
+    if (event.key === 'Shift' && event.key === 'n') {
         event.preventDefault(); // Prevent default browser behavior
         
         // Instantly expire the timer based on current round
@@ -342,6 +342,7 @@ function renderPuzzle() {
     instruction.style.margin = '10px 0';
     instruction.style.color = '#ff6b6b';
     instruction.style.fontWeight = 'bold';
+    instruction.style.fontSize = '1.1rem';
     container.appendChild(instruction);
     
     // Add shuffle and auto solve buttons
@@ -352,6 +353,7 @@ function renderPuzzle() {
     buttonContainer.style.width = '100%';
     buttonContainer.style.gridColumn = '1 / -1';
     buttonContainer.style.margin = '10px 0';
+    buttonContainer.style.flexWrap = 'wrap';
     
     const shuffleBtn = document.createElement('button');
     shuffleBtn.textContent = 'Shuffle';
@@ -594,7 +596,7 @@ function initializeRound2() {
     gameState.round2.timeLeft = 120; // 2 minutes
     gameState.round2.crosswordGrid = Array(4).fill(null).map(() => Array(10).fill('')); // 4 rows, 10 columns
     
-    renderCrosswordGrid();
+    // Initially show only the crossword-word elements
     renderCrosswordDisplay();
     updateAttemptsDisplay();
     updateWordProgress();
@@ -609,6 +611,18 @@ function initializeRound2() {
 function renderCrosswordGrid() {
     const gridContainer = document.getElementById('crosswordGrid');
     gridContainer.innerHTML = '';
+    
+    // Check if all words are solved
+    const allSolved = gameState.round2.solved.every(solved => solved);
+    
+    if (!allSolved) {
+        // Hide the grid until all words are solved
+        gridContainer.style.display = 'none';
+        return;
+    }
+    
+    // Show the grid when all words are solved
+    gridContainer.style.display = 'grid';
     
     // Create a 4x10 grid for the crossword
     gridContainer.style.gridTemplateColumns = 'repeat(10, 1fr)';
@@ -639,6 +653,13 @@ function renderCrosswordGrid() {
             }
             
             gridContainer.appendChild(cell);
+        }
+    }
+    
+    // Fill in the solved words
+    for (let i = 0; i < gameState.round2.words.length; i++) {
+        if (gameState.round2.solved[i]) {
+            placeWordInGrid(i, gameState.round2.words[i]);
         }
     }
 }
@@ -774,6 +795,9 @@ function submitWord() {
         // Place the correct word in the crossword grid
         placeWordInGrid(currentIndex, correctWord);
         
+        // Update the crossword display to show the filled word
+        renderCrosswordDisplay();
+        
         if (currentIndex < 3) {
             // Move to next word
             setTimeout(() => {
@@ -785,6 +809,12 @@ function submitWord() {
             }, 1000);
         } else {
             // All words solved
+            // Show the complete crossword grid
+            setTimeout(() => {
+                renderCrosswordGrid();
+                renderCrosswordDisplay();
+            }, 1000);
+            
             // Stop the timer
             if (gameState.round2.timer) {
                 clearInterval(gameState.round2.timer);
@@ -793,7 +823,7 @@ function submitWord() {
             setTimeout(() => {
                 showScreen('round3');
                 initializeRound3();
-            }, 1500);
+            }, 2500);
         }
     } else {
         // Incorrect answer

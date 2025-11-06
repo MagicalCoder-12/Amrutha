@@ -58,15 +58,15 @@
                 </div>
                 
                 <div id="previewImage" class="preview-container" style="flex-direction: column; align-items: center; gap: 15px;">
-                    <span style="color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Original Image</span>
-                    <img src="public/child_photo.jpg" alt="Preview of the photo to solve" class="preview-image">
-                    <button id="hidePreview" class="preview-btn">Hide Preview</button>
+                    <span style="color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 1.2rem;">Original Image</span>
+                    <img src="public/child_photo.jpg" alt="Preview of the photo to solve" class="preview-image" style="max-width: 90vw; max-height: 80vh;">
+                    <button id="hidePreview" class="preview-btn" style="width: 100%; max-width: 200px; margin: 15px auto;">Hide Preview</button>
                 </div>
             </div>
             
-            <button id="autoCompleteButton" class="hidden">Auto Complete Round →</button>
+            <button id="autoCompleteButton" class="hidden" style="width: 100%; max-width: 300px; margin: 15px auto;">Auto Complete Round →</button>
             
-            <div id="puzzleSolved" class="hidden" style="color: #51cf66; font-size: 2rem; font-weight: bold; margin: 25px 0; text-shadow: 2px 2px 0 #ffd166;">
+            <div id="puzzleSolved" class="hidden" style="color: #51cf66; font-size: 2rem; font-weight: bold; margin: 25px 0; text-shadow: 2px 2px 0 #ffd166; width: 100%; text-align: center;">
                 Puzzle Solved! 🎉
             </div>
         </div>
@@ -107,7 +107,7 @@
             
             <button id="submitWord" style="width: 100%; max-width: 300px; margin: 15px auto;">Submit Answer</button>
             
-            <div id="wordResult" style="margin: 20px 0; min-height: 30px; font-weight: bold; font-size: 1.3rem;"></div>
+            <div id="wordResult" style="margin: 20px 0; min-height: 30px; font-weight: bold; font-size: 1.3rem; width: 100%; text-align: center;"></div>
         </div>
 
         <!-- Round 3 Screen -->
