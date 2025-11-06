@@ -238,6 +238,11 @@ function initializeRound1() {
         // Render the puzzle
         renderPuzzle();
         
+        // Shuffle the tiles automatically when the game starts
+        setTimeout(() => {
+            shuffleRound1Tiles();
+        }, 500);
+        
         // Start the timer
         startRound1Timer();
         
@@ -247,6 +252,10 @@ function initializeRound1() {
         // Fallback if canvas fails - still render
         console.log('Image loading failed, using fallback');
         renderPuzzle();
+        // Shuffle the tiles automatically when the game starts
+        setTimeout(() => {
+            shuffleRound1Tiles();
+        }, 500);
         startRound1Timer();
         showRound1Preview();
     });
@@ -583,9 +592,9 @@ function initializeRound2() {
     gameState.round2.attempts = [3, 3, 3, 3];
     gameState.round2.solved = [false, false, false, false];
     gameState.round2.timeLeft = 120; // 2 minutes
-    gameState.round2.selectedLetters = []; // Track selected letters in the wheel
+    gameState.round2.crosswordGrid = Array(4).fill(null).map(() => Array(10).fill('')); // 4 rows, 10 columns
     
-    renderWordWheel();
+    renderCrosswordGrid();
     renderCrosswordDisplay();
     updateAttemptsDisplay();
     updateWordProgress();
@@ -597,60 +606,50 @@ function initializeRound2() {
     startRound2Timer();
 }
 
-function renderWordWheel() {
-    const wheelContainer = document.getElementById('wordWheel');
-    wheelContainer.innerHTML = '';
+function renderCrosswordGrid() {
+    const gridContainer = document.getElementById('crosswordGrid');
+    gridContainer.innerHTML = '';
     
-    // Create the center of the wheel
-    const center = document.createElement('div');
-    center.className = 'wheel-center';
-    center.textContent = 'WORD';
-    wheelContainer.appendChild(center);
+    // Create a 4x10 grid for the crossword
+    gridContainer.style.gridTemplateColumns = 'repeat(10, 1fr)';
+    gridContainer.style.gridTemplateRows = 'repeat(4, 1fr)';
     
-    // Define the letters for the wheel (using a mix of letters from the words)
+    // Define letters for each row (based on the words to guess)
     // Words: Manasvi, Mariyamma, Thoshini, Alekhya
-    const letters = ['M', 'A', 'N', 'S', 'V', 'I', 'R', 'Y', 'T', 'H', 'O', 'L', 'K', 'E'];
+    const wordLetters = [
+        ['M', 'A', 'N', 'A', 'S', 'V', 'I', '', '', ''],
+        ['M', 'A', 'R', 'I', 'Y', 'A', 'M', 'M', 'A', ''],
+        ['T', 'H', 'O', 'S', 'H', 'I', 'N', 'I', '', ''],
+        ['A', 'L', 'E', 'K', 'H', 'Y', 'A', '', '', '']
+    ];
     
-    // Position letters in a circular pattern
-    const radius = 100;
-    const centerX = 150;
-    const centerY = 150;
-    
-    letters.forEach((letter, index) => {
-        const angle = (index / letters.length) * 2 * Math.PI;
-        const x = centerX + radius * Math.cos(angle) - 25;
-        const y = centerY + radius * Math.sin(angle) - 25;
-        
-        const letterElement = document.createElement('div');
-        letterElement.className = 'wheel-letter';
-        letterElement.textContent = letter;
-        letterElement.style.left = `${x}px`;
-        letterElement.style.top = `${y}px`;
-        letterElement.dataset.letter = letter;
-        
-        letterElement.addEventListener('click', () => handleLetterClick(letterElement, letter));
-        
-        wheelContainer.appendChild(letterElement);
-    });
+    // Create grid cells
+    for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 10; col++) {
+            const cell = document.createElement('div');
+            cell.className = 'crossword-cell';
+            cell.dataset.row = row;
+            cell.dataset.col = col;
+            
+            // If there's a letter for this position, show it as a hint
+            if (wordLetters[row][col]) {
+                cell.textContent = wordLetters[row][col];
+                // Add a class to indicate this is a hint cell
+                cell.classList.add('hint');
+            }
+            
+            gridContainer.appendChild(cell);
+        }
+    }
 }
 
-function handleLetterClick(letterElement, letter) {
-    // Toggle selection
-    if (letterElement.classList.contains('selected')) {
-        letterElement.classList.remove('selected');
-        // Remove from selected letters array
-        const index = gameState.round2.selectedLetters.indexOf(letter);
-        if (index > -1) {
-            gameState.round2.selectedLetters.splice(index, 1);
-        }
-    } else {
-        letterElement.classList.add('selected');
-        // Add to selected letters array
-        gameState.round2.selectedLetters.push(letter);
-    }
+function handleCrosswordCellClick(cellElement, row, col) {
+    // Get the current word to solve
+    const currentWord = gameState.round2.words[gameState.round2.currentIndex];
     
-    // Update the input field with selected letters
-    document.getElementById('wordInput').value = gameState.round2.selectedLetters.join('');
+    // If this cell is part of the current word, allow input
+    // For simplicity, we'll just focus the input field when a cell is clicked
+    document.getElementById('wordInput').focus();
 }
 
 function renderCrosswordDisplay() {
@@ -679,6 +678,16 @@ function renderCrosswordDisplay() {
     }
     
     crosswordContainer.appendChild(wordDisplay);
+    
+    // Add event listener to crossword grid cells
+    const cells = document.querySelectorAll('.crossword-cell');
+    cells.forEach(cell => {
+        cell.addEventListener('click', () => {
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            handleCrosswordCellClick(cell, row, col);
+        });
+    });
 }
 
 function updateWordClues() {
@@ -692,10 +701,27 @@ function updateWordClues() {
 }
 
 function renderCrossword() {
-    // This function is now replaced by renderWordWheel and renderCrosswordDisplay
-    renderWordWheel();
+    // This function is now replaced by renderCrosswordGrid and renderCrosswordDisplay
+    renderCrosswordGrid();
     renderCrosswordDisplay();
     updateWordClues();
+}
+
+function placeWordInGrid(rowIndex, word) {
+    // Update the crossword grid with the solved word
+    const cells = document.querySelectorAll('.crossword-cell');
+    
+    // Find cells in the specified row
+    cells.forEach(cell => {
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        
+        // If this cell is in the row we're updating and within the word length
+        if (row === rowIndex && col < word.length) {
+            cell.textContent = word[col];
+            cell.classList.add('filled');
+        }
+    });
 }
 
 function updateAttemptsDisplay() {
@@ -745,18 +771,8 @@ function submitWord() {
         document.getElementById('wordResult').innerHTML = 
             '<span style="color: #51cf66;">Correct! 🎉</span>';
         
-        // Mark the letters in the wheel as correct
-        const wheelLetters = document.querySelectorAll('.wheel-letter');
-        wheelLetters.forEach(letterElement => {
-            if (correctWord.toUpperCase().includes(letterElement.dataset.letter)) {
-                letterElement.classList.add('correct');
-            }
-        });
-        
-        // Clear selected letters
-        gameState.round2.selectedLetters = [];
-        const selectedLetters = document.querySelectorAll('.wheel-letter.selected');
-        selectedLetters.forEach(letter => letter.classList.remove('selected'));
+        // Place the correct word in the crossword grid
+        placeWordInGrid(currentIndex, correctWord);
         
         if (currentIndex < 3) {
             // Move to next word
@@ -840,9 +856,8 @@ function initializeRound3() {
     gameState.currentRound = 3;
     
     // Generate "Happy Birthday" sequence (simplified)
-    // H-A-P-P-Y B-I-R-T-H-D-A-Y
-    // We'll use 8 notes for the sequence
-    gameState.round3.sequence = [0, 1, 2, 2, 3, 4, 1, 2]; // Simplified sequence
+    // Using 6 notes for a simpler sequence that matches the display
+    gameState.round3.sequence = [0, 1, 2, 2, 1, 3]; // Simplified 6-note sequence
     gameState.round3.userSequence = [];
     gameState.round3.showingSequence = false;
     
@@ -859,7 +874,8 @@ function renderSequenceDisplay() {
     const container = document.getElementById('sequenceDisplay');
     container.innerHTML = '';
     
-    for (let i = 0; i < 6; i++) {
+    // Create dots equal to the sequence length
+    for (let i = 0; i < gameState.round3.sequence.length; i++) {
         const dot = document.createElement('div');
         dot.className = 'sequence-dot';
         container.appendChild(dot);
