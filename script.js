@@ -232,9 +232,10 @@ function initializeRound1() {
     gameState.round1.emptyIndex = 8;
     gameState.round1.solved = false;
     gameState.round1.moves = 0;
+    gameState.round1.selectedTile = null;
     
-    // Create image tiles using canvas
-    createImageTiles().then(() => {
+    // Load the default image with better quality handling
+    loadRound1Image().then(() => {
         // Render the puzzle
         renderPuzzle();
         
@@ -259,6 +260,88 @@ function initializeRound1() {
         startRound1Timer();
         showRound1Preview();
     });
+}
+
+function loadRound1Image() {
+    return new Promise((resolve, reject) => {
+        // For local files, we need to use a different approach to avoid CORS issues and maintain quality
+        fetch('public/child_photo.jpg')
+            .then(response => response.blob())
+            .then(blob => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        createHighQualityTiles(img);
+                        resolve();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(blob);
+            })
+            .catch(() => {
+                // Fallback to direct image loading
+                const img = new Image();
+                img.onload = () => {
+                    createHighQualityTiles(img);
+                    resolve();
+                };
+                img.onerror = () => {
+                    console.log('Image failed to load');
+                    reject();
+                };
+                img.src = 'public/child_photo.jpg';
+            });
+    });
+}
+
+function createHighQualityTiles(image) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Use a larger maxSize for better quality
+    const maxSize = 600;
+    let width = image.width;
+    let height = image.height;
+    
+    if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height);
+        width *= ratio;
+        height *= ratio;
+    }
+    
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(image, 0, 0, width, height);
+    
+    gameState.round1.tileWidth = width / 3;
+    gameState.round1.tileHeight = height / 3;
+    
+    // Create individual tile images with higher quality
+    gameState.round1.tileImages = [];
+    
+    for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+            const tileCanvas = document.createElement('canvas');
+            const tileCtx = tileCanvas.getContext('2d');
+            if (!tileCtx) continue;
+            
+            tileCanvas.width = gameState.round1.tileWidth;
+            tileCanvas.height = gameState.round1.tileHeight;
+            
+            tileCtx.drawImage(
+                ctx.canvas,
+                col * gameState.round1.tileWidth, row * gameState.round1.tileHeight,
+                gameState.round1.tileWidth, gameState.round1.tileHeight,
+                0, 0,
+                gameState.round1.tileWidth, gameState.round1.tileHeight
+            );
+            
+            gameState.round1.tileImages.push(tileCanvas.toDataURL());
+        }
+    }
+    
+    console.log('High quality image tiles created successfully');
 }
 
 function createImageTiles() {
@@ -335,7 +418,7 @@ function renderPuzzle() {
     
     // Add instruction text
     const instruction = document.createElement('p');
-    instruction.textContent = 'Click the tiles to solve the puzzle!';
+    instruction.textContent = 'Drag and drop the tiles to solve the puzzle!';
     instruction.style.textAlign = 'center';
     instruction.style.width = '100%';
     instruction.style.gridColumn = '1 / -1';
@@ -375,21 +458,34 @@ function renderPuzzle() {
     buttonContainer.appendChild(previewBtn);
     container.appendChild(buttonContainer);
     
-    // Create puzzle grid
+    // Create puzzle grid with proper sizing
     const gridSize = 3;
-    container.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+    if (gameState.round1.tileWidth && gameState.round1.tileHeight) {
+        container.style.gridTemplateColumns = `repeat(${gridSize}, ${gameState.round1.tileWidth}px)`;
+        container.style.gridTemplateRows = `repeat(${gridSize}, ${gameState.round1.tileHeight}px)`;
+    } else {
+        container.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+    }
+    
+    // Create tile elements with drag and drop functionality
+    gameState.round1.tileElements = [];
     
     gameState.round1.tiles.forEach((tile, index) => {
         const tileElement = document.createElement('div');
         tileElement.className = `puzzle-tile ${tile === null ? 'empty' : ''}`;
         tileElement.dataset.index = index;
         
+        // Set proper sizing
+        if (gameState.round1.tileWidth && gameState.round1.tileHeight) {
+            tileElement.style.width = `${gameState.round1.tileWidth}px`;
+            tileElement.style.height = `${gameState.round1.tileHeight}px`;
+        }
+        
         if (tile !== null && gameState.round1.tileImages[tile]) {
             // Use actual sliced image
             tileElement.style.backgroundImage = `url(${gameState.round1.tileImages[tile]})`;
             tileElement.style.backgroundSize = 'cover';
             tileElement.style.backgroundPosition = 'center';
-            tileElement.addEventListener('click', () => handlePuzzleClick(index));
         } else if (tile !== null) {
             // Fallback to CSS background positioning
             const row = Math.floor(tile / 3);
@@ -397,12 +493,71 @@ function renderPuzzle() {
             tileElement.style.backgroundImage = 'url(public/child_photo.jpg)';
             tileElement.style.backgroundPosition = `-${col * 33.33}% -${row * 33.33}%`;
             tileElement.style.backgroundSize = '300% 300%';
-            tileElement.addEventListener('click', () => handlePuzzleClick(index));
         }
         
+        // Add click and drag functionality
+        tileElement.addEventListener('click', () => handleRound1TileClick(index));
+        
+        // Store reference for drag and drop
+        gameState.round1.tileElements.push(tileElement);
         container.appendChild(tileElement);
     });
     console.log('Puzzle rendered');
+}
+
+function handleRound1TileClick(index) {
+    if (gameState.round1.solved) return;
+    
+    const clickedTile = gameState.round1.tiles[index];
+    if (clickedTile === null) return;
+    
+    // Check if there's already a selected tile
+    if (gameState.round1.selectedTile === null) {
+        // Select this tile
+        gameState.round1.selectedTile = index;
+        if (gameState.round1.tileElements && gameState.round1.tileElements[index]) {
+            gameState.round1.tileElements[index].classList.add('selected');
+        }
+    } else if (gameState.round1.selectedTile === index) {
+        // Deselect the same tile
+        if (gameState.round1.tileElements && gameState.round1.tileElements[index]) {
+            gameState.round1.tileElements[index].classList.remove('selected');
+        }
+        gameState.round1.selectedTile = null;
+    } else {
+        // Swap the selected tile with this tile
+        swapRound1Tiles(gameState.round1.selectedTile, index);
+        
+        // Deselect the previously selected tile
+        if (gameState.round1.tileElements && gameState.round1.tileElements[gameState.round1.selectedTile]) {
+            gameState.round1.tileElements[gameState.round1.selectedTile].classList.remove('selected');
+        }
+        gameState.round1.selectedTile = null;
+    }
+}
+
+function swapRound1Tiles(index1, index2) {
+    // Swap the tile positions in the game state
+    [gameState.round1.tiles[index1], gameState.round1.tiles[index2]] = 
+    [gameState.round1.tiles[index2], gameState.round1.tiles[index1]];
+    
+    // Update empty index if needed
+    if (gameState.round1.tiles[index1] === null) {
+        gameState.round1.emptyIndex = index1;
+    } else if (gameState.round1.tiles[index2] === null) {
+        gameState.round1.emptyIndex = index2;
+    }
+    
+    // Update moves counter
+    gameState.round1.moves++;
+    
+    // Re-render the puzzle to update positions
+    renderPuzzle();
+    
+    // Check if puzzle is solved
+    if (checkPuzzleSolved()) {
+        solvePuzzle();
+    }
 }
 
 function handlePuzzleClick(index) {
@@ -521,6 +676,9 @@ function shuffleRound1Tiles() {
     
     gameState.round1.emptyIndex = gameState.round1.tiles.indexOf(null);
     gameState.round1.moves++;
+    
+    // Clear any selected tile
+    gameState.round1.selectedTile = null;
     
     renderPuzzle();
 }
