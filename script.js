@@ -97,7 +97,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Video event listeners
     if (videos.embarrassing) {
-        videos.embarrassing.addEventListener('ended', () => {
+        videos.embarrassing.addEventListener('ended', function onEnded() {
+            // Remove the event listener to prevent multiple triggers
+            videos.embarrassing.removeEventListener('ended', onEnded);
+            
             // Only proceed to final stage if video has been played at least once
             if (gameState.embarrassingVideoPlayed) {
                 showFinalStage();
@@ -108,8 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Final video event listeners
     if (videos.final) {
         videos.final.addEventListener('ended', () => {
-            // Video ended, but we want it to loop so this might not be needed
+            // Video ended, but we want it to loop
             console.log('Final video ended');
+            // Try to play it again to create a looping effect
+            videos.final.play().catch(e => console.log('Failed to replay final video:', e));
         });
     }
     
@@ -267,6 +272,9 @@ function resetGameState() {
 
 // Show a specific screen
 function showScreen(screenName) {
+    // Stop any playing videos before switching screens
+    stopAllVideos();
+    
     // Hide all screens
     Object.values(screens).forEach(screen => {
         screen.classList.remove('active');
@@ -287,6 +295,18 @@ function showScreen(screenName) {
                 videos.final.play().catch(e => console.log('Even muted video failed:', e));
             });
         }, 500);
+    }
+}
+
+// Stop all videos to prevent overlapping audio
+function stopAllVideos() {
+    if (videos.embarrassing) {
+        videos.embarrassing.pause();
+        videos.embarrassing.currentTime = 0;
+    }
+    if (videos.final) {
+        videos.final.pause();
+        videos.final.currentTime = 0;
     }
 }
 
@@ -576,7 +596,15 @@ function renderPuzzle() {
         
         // All tiles can be drop targets
         tileElement.addEventListener('dragover', handleDragOver);
-        tileElement.addEventListener('drop', (e) => handleDrop(e, index));
+        
+        // Handle drop differently for empty and non-empty tiles
+        if (tile === null) {
+            // For empty tiles, use the special handler
+            tileElement.addEventListener('drop', (e) => handleEmptyTileDrop(e, index));
+        } else {
+            // For non-empty tiles, use the regular handler
+            tileElement.addEventListener('drop', (e) => handleDrop(e, index));
+        }
         
         // Store reference for drag and drop
         gameState.round1.tileElements.push(tileElement);
@@ -661,21 +689,45 @@ function handleDrop(e, targetIndex) {
     // Reset opacity
     e.target.style.opacity = '1';
     
-    // Check if target is the empty tile
-    if (gameState.round1.tiles[targetIndex] === null) {
-        // Check if source tile is adjacent to empty tile
-        const sourceRow = Math.floor(sourceIndex / 3);
-        const sourceCol = sourceIndex % 3;
-        const targetRow = Math.floor(targetIndex / 3);
-        const targetCol = targetIndex % 3;
-        
-        const isAdjacent = 
-            (sourceRow === targetRow && Math.abs(sourceCol - targetCol) === 1) ||
-            (sourceCol === targetCol && Math.abs(sourceRow - targetRow) === 1);
-        
-        if (isAdjacent) {
-            swapRound1Tiles(sourceIndex, targetIndex);
-        }
+    // Check if source tile is adjacent to target tile
+    const sourceRow = Math.floor(sourceIndex / 3);
+    const sourceCol = sourceIndex % 3;
+    const targetRow = Math.floor(targetIndex / 3);
+    const targetCol = targetIndex % 3;
+    
+    const isAdjacent = 
+        (sourceRow === targetRow && Math.abs(sourceCol - targetCol) === 1) ||
+        (sourceCol === targetCol && Math.abs(sourceRow - targetRow) === 1);
+    
+    if (isAdjacent) {
+        swapRound1Tiles(sourceIndex, targetIndex);
+    }
+}
+
+function handleEmptyTileDrop(e, emptyIndex) {
+    e.preventDefault();
+    
+    if (gameState.round1.solved) return;
+    
+    const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+    
+    // Reset opacity
+    if (e.target) {
+        e.target.style.opacity = '1';
+    }
+    
+    // Check if source tile is adjacent to empty tile
+    const sourceRow = Math.floor(sourceIndex / 3);
+    const sourceCol = sourceIndex % 3;
+    const targetRow = Math.floor(emptyIndex / 3);
+    const targetCol = emptyIndex % 3;
+    
+    const isAdjacent = 
+        (sourceRow === targetRow && Math.abs(sourceCol - targetCol) === 1) ||
+        (sourceCol === targetCol && Math.abs(sourceRow - targetRow) === 1);
+    
+    if (isAdjacent) {
+        swapRound1Tiles(sourceIndex, emptyIndex);
     }
 }
 
@@ -1265,7 +1317,7 @@ function handleColorClick(colorIndex) {
     
     // Check if the clicked note matches the sequence
     if (gameState.round3.userSequence[currentIndex] !== gameState.round3.sequence[currentIndex]) {
-        // Wrong note - play "you_cant" audio and show video
+        // Wrong note - play "you_cant" audio and show embarrassing video
         gameState.round3.wrongAttempts = (gameState.round3.wrongAttempts || 0) + 1;
         
         if (audios.cant) {
@@ -1275,7 +1327,16 @@ function handleColorClick(colorIndex) {
         
         // Show the embarrassing video after a short delay
         setTimeout(() => {
-            showFinalStage();
+            // Stop any playing notes
+            stopAllAudio();
+            showScreen('bonus');
+            
+            // Play the embarrassing video
+            if (videos.embarrassing) {
+                setTimeout(() => {
+                    videos.embarrassing.play().catch(e => console.log('Video play failed:', e));
+                }, 500);
+            }
         }, 2000);
         
         return;
@@ -1289,7 +1350,32 @@ function handleColorClick(colorIndex) {
         
         setTimeout(() => {
             showScreen('bonus');
+            
+            // Play the embarrassing video
+            if (videos.embarrassing) {
+                setTimeout(() => {
+                    videos.embarrassing.play().catch(e => console.log('Video play failed:', e));
+                }, 500);
+            }
         }, 2000);
+    }
+}
+
+// Stop all audio to prevent overlapping sounds
+function stopAllAudio() {
+    // Stop note audio
+    for (let i = 1; i <= 4; i++) {
+        const audio = audios[`note${i}`];
+        if (audio) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
+    }
+    
+    // Stop "you_cant" audio
+    if (audios.cant) {
+        audios.cant.pause();
+        audios.cant.currentTime = 0;
     }
 }
 
@@ -1302,7 +1388,31 @@ function showFinalStage() {
         
         // Play the embarrassing video
         if (videos.embarrassing) {
+            // Stop any playing audio first
+            stopAllAudio();
             videos.embarrassing.play().catch(e => console.log('Video play failed:', e));
+            
+            // After embarrassing video ends, show final screen
+            videos.embarrassing.addEventListener('ended', function onEnded() {
+                videos.embarrassing.removeEventListener('ended', onEnded);
+                setTimeout(() => {
+                    showScreen('final');
+                    createConfetti();
+                    
+                    // Play the final video
+                    if (videos.final) {
+                        // Ensure the video is unmuted and plays with audio
+                        videos.final.muted = false;
+                        videos.final.play().catch(e => {
+                            console.log('Video play failed:', e);
+                            // Try again with muted if autoplay failed
+                            videos.final.muted = true;
+                            videos.final.play().catch(e => console.log('Muted video play also failed:', e));
+                        });
+                    }
+                }, 1000);
+            }, {once: true});
+            
             return;
         }
     }
@@ -1343,13 +1453,5 @@ function createConfetti() {
         setTimeout(() => {
             confetti.remove();
         }, 7000);
-    }
-    
-    // Try to unmute and play the final video with audio
-    if (videos.final) {
-        videos.final.muted = false;
-        videos.final.play().catch(e => {
-            console.log('Could not play final video with audio:', e);
-        });
     }
 }
